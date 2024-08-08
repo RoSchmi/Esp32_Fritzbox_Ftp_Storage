@@ -36,6 +36,8 @@
 #define SERIAL_PRINT 1                     // 1 = yes, 0 = no. Select if Serial.print messages are printed
 
 #define _ESPASYNC_WIFIMGR_LOGLEVEL_  0     // ( 0 - 4) Define EspAsync_WiFiManager Loglevel (Debug Messages)
+#define _FTP_LOGLEVEL_   4
+
 
 /* This is commented out as it's dangerous to display WiFi password in a Captive Portal page
 

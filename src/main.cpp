@@ -9,6 +9,7 @@
 #include <time.h>
 #include "ESPAsyncWebServer.h"
 #include "config.h"
+#include "config_secret.h"
 #include "DateTime.h"
 #include <freertos/FreeRTOS.h>
 #include "Esp.h"
@@ -23,6 +24,9 @@
 #include "WiFiUdp.h"
 #include "WiFiClient.h"
 #include "HTTPClient.h"
+
+#include <FTPClient_Generic.h>
+#include "octocat.h"
 
 #include "DataContainerWio.h"
 #include "OnOffSwitcherWio.h"
@@ -55,6 +59,53 @@ uint8_t lastResetCause = 0;
 
 #define GPIOPin 0
 bool buttonPressed = false;
+
+/*     ftp-client stuff                */
+
+/************************************************************************/
+// To use `true` with the following PASV mode asnswer from server, such as `VSFTP`
+// 227 Entering Passive Mode (192,168,2,112,157,218)
+// Using `false` with old style PASV answer, such as `FTP_Server_Teensy41` library
+// 227 Entering Passive Mode (4043483328, port 55600)
+#define USING_VSFTP_SERVER      false
+#define FTP_CLIENT_USING_ETHERNET false
+
+#if USING_VSFTP_SERVER
+  // Change according to your FTP server
+  char ftp_server[] = FTP_SERVER_IP;    //"192.168.1.1";
+
+  char ftp_user[]   = FTP_USERNAME; //"esp32test"; 
+
+  char ftp_pass[]   = FTP_PASSWORD; //"esp32password"; 
+
+  char rootDirName[]    = "/";
+  char newDirName[] = "/Dokumente/NewTestDir";
+
+#else
+
+  // Change according to your FTP server
+
+  char ftp_server[] = FTP_SERVER_IP;    //"192.168.1.1";
+
+  char ftp_user[]   =  FTP_USERNAME; // "esp32test";
+  char ftp_pass[]   = FTP_PASSWORD;  // "esp32password";
+
+  char rootDirName[]    = "/";
+  char newDirName[] = "/Dokumente/NewTestDir";
+
+#endif
+
+// FTPClient_Generic(char* _serverAdress, char* _userName, char* _passWord, uint16_t _timeout = 10000);
+
+#define _FTP_LOGLEVEL_ 4
+FTPClient_Generic ftp (ftp_server, ftp_user, ftp_pass, 60000);
+
+
+/********************************************************************** */
+
+/*    end  ftp-client stuff                */
+
+
 
 const char analogTableName[45] = ANALOG_TABLENAME;
 
@@ -1313,7 +1364,62 @@ void setup() {
 
   analogSensorMgr.SetReadInterval(ANALOG_SENSOR_READ_INTERVAL_SECONDS);
 
+  
+  /********   begin ftp stuff   ******************* */
+    Serial.print(F("\nStarting FTPClient_UploadImage on "));
+    Serial.print("BOARD_NAME");
+    Serial.print(F(" with "));
+    Serial.println("SHIELD_TYPE");
+    Serial.println(FTPCLIENT_GENERIC_VERSION);
 
+    ftp.OpenConnection();
+    if(ftp.isConnected())
+    {
+      Serial.println("Is connected");
+    }
+    else
+    {
+      Serial.println("Is not connected");
+    }
+
+    ftp.ChangeWorkDir(rootDirName);
+
+     // Get the file size
+    String       list[128];
+
+    // Get the directory content in order to allocate buffer
+    // my server response => type=file;modify=20190101000010;size=18; helloworld.txt
+
+    ftp.InitFile(COMMAND_XFER_TYPE_ASCII);
+
+    ftp.ContentListWithListCommand(rootDirName, list);
+
+    for (uint16_t i = 0; i < sizeof(list); i++)
+    {
+      if (list[i].length() > 0)
+        Serial.println(list[i]);
+      else
+        break;
+    }
+
+    ftp.ChangeWorkDir("Dokumente");
+
+    ftp.MakeDir(newDirName);
+
+    // Create the new file and send the image
+    Serial.print("Writing octocat.jpg, size = ");
+    Serial.println(sizeof(octocat_pic));
+
+    ftp.InitFile(COMMAND_XFER_TYPE_BINARY);
+    ftp.NewFile("octocat.jpg");
+    ftp.WriteData( octocat_pic, sizeof(octocat_pic) );
+    ftp.CloseFile();
+
+    ftp.CloseConnection();
+   
+  delay(5000);
+     
+  /********   end ftp stuff   ******************* */
 
 }
 

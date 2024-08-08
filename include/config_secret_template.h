@@ -7,4 +7,8 @@
 #define IOT_CONFIG_WIFI_SSID            "YourSSID"
 #define IOT_CONFIG_WIFI_PASSWORD        "YourWiFiPassword"
 
+#define FTP_SERVER_IP                       "192.168.1.1"
+#define FTP_USERNAME                        "UnknownUser"
+#define FTP_PASSWORD                        "SecretPassWord"
+
 #endif // _CONFIG_SECRET_H
